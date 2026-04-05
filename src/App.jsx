@@ -349,6 +349,31 @@ function WizardView({ onBack }) {
       });
   }, [selectedTrack]);
 
+  const summary = useMemo(() => {
+    if (!selectedTrack) return null;
+    const STATUS_LABELS = {
+      forbidden: "prohibited",
+      legal_review_required: "require legal review",
+      narrow: "specific uses only",
+      permitted: "permitted",
+      silent: "no specific law",
+    };
+    const countByStatus = (track) => {
+      const counts = {};
+      RISK_ORDER.forEach(k => { counts[k] = 0; });
+      RAW.forEach(s => { counts[s[track].status]++; });
+      return counts;
+    };
+    const fmt = (counts) =>
+      RISK_ORDER.filter(k => counts[k] > 0)
+        .map(k => `${counts[k]} ${STATUS_LABELS[k]}`)
+        .join(" · ");
+    if (selectedTrack === "both") {
+      return { private: fmt(countByStatus("private")), le: fmt(countByStatus("le")) };
+    }
+    return { single: fmt(countByStatus(selectedTrack)) };
+  }, [selectedTrack]);
+
   return (
     <div style={{ minHeight: "100vh", background: "#F5F2EE" }}>
       <div style={{ background: "#1A1A1A", color: "#fff", padding: "14px 24px", display: "flex", alignItems: "center", gap: 16 }}>
@@ -388,6 +413,18 @@ function WizardView({ onBack }) {
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                {summary && (
+                  <div style={{ background: "#fff", borderRadius: 6, padding: "12px 16px", marginBottom: 16, border: "1px solid #e8e8e8" }}>
+                    {summary.single ? (
+                      <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#555", lineHeight: 1.6 }}>{summary.single}</p>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#555", lineHeight: 1.6 }}><span style={{ color: "#aaa", marginRight: 8 }}>Private</span>{summary.private}</p>
+                        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#555", lineHeight: 1.6 }}><span style={{ color: "#aaa", marginRight: 8 }}>LE</span>{summary.le}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {selectedTrack === "both" && (
                   <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 14px 8px", borderBottom: "1px solid #eee", marginBottom: 4 }}>
                     <div style={{ width: 36 }} />
