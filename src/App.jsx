@@ -563,8 +563,11 @@ function RecentView({ onBack }) {
               <div style={{ flex:1 }}>
                 <div style={{ fontSize:15, fontWeight:500, color:"#1A1A1A", marginBottom:4 }}>{s.name}</div>
                 <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-                  <Pill status={s.private.status} sm />
-                  {s.private.status !== s.le.status && <Pill status={s.le.status} sm />}
+                  {riskRank(s.private.status) <= riskRank(s.le.status) ? (
+                    <><Pill status={s.private.status} sm />{s.private.status !== s.le.status && <Pill status={s.le.status} sm />}</>
+                  ) : (
+                    <><Pill status={s.le.status} sm /><Pill status={s.private.status} sm /></>
+                  )}
                 </div>
                 {s.meta?.new_statute_note && <p style={{ fontSize:13, color:"#555", marginTop:6, lineHeight:1.5 }}>{s.meta.new_statute_note}</p>}
                 {s.meta?.watch_note && <p style={{ fontSize:13, color:"#7A5800", marginTop:4, lineHeight:1.5 }}>⚠ {s.meta.watch_note}</p>}
