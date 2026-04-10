@@ -624,7 +624,7 @@ function RecentView({ onBack }) {
 
 function Landing({ onNavigate }) {
   const doors = [
-    { key: "wizard", icon: "01", title: "Ranked Risk",  sub: "All 50 states ordered by exposure. Choose your track, see where you need help." },
+    { key: "wizard", icon: "01", title: "Ranked Risk",  sub: "All 50 states ordered by exposure. Choose your track, see what each state says." },
     { key: "map",    icon: "02", title: "Risk Map",     sub: "50-state tile map colored by status. Click any state for the full picture." },
     { key: "data",   icon: "03", title: "Raw Data",     sub: "Download the full dataset as JSON or CSV. Build your own tools." },
   ];
