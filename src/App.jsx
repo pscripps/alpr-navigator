@@ -391,7 +391,7 @@ function WizardView({ onBack }) {
                 {[
                   ["private", "Private & Personal Use", "Commercial operators, fleet managers, retail, parking, real estate — and individuals using ALPR for personal purposes"],
                   ["le",      "Law Enforcement",        "Police, sheriff, and other government agencies"],
-                  ["both",    "Both / Not Sure",        "Show the worst-case across both tracks — useful if your product serves multiple user types"],
+                  ["both",    "Both / Not Sure",        "Show the worst-case across both tracks"],
                 ].map(([v, label, desc]) => (
                   <button key={v} className="door" onClick={() => setSelectedTrack(v)} style={{ background: "#fff", border: "1px solid #ddd", borderRadius: 10, padding: "20px 24px", textAlign: "left", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
