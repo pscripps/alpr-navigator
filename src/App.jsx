@@ -520,7 +520,7 @@ function DataView({ onBack }) {
           <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#888", lineHeight: 1.8 }}>
             <strong style={{ color: "#555" }}>Data notes</strong><br/>
             Last verified: April 2026<br/>
-            States with enacted statutes: 25 (DC statute exists but is unfunded and not yet effective)<br/>
+            States with enacted statutes: {RAW.filter(s => s.statute.exists).length} (DC statute exists but is unfunded and not yet effective)<br/>
             {DISCLAIMER}
           </p>
         </div>
