@@ -1,10 +1,10 @@
 # ALPR Navigator
 
-50-state coverage of Automatic License Plate Reader statutes. Two tracks: **private enterprise** and **law enforcement**. Built by a privacy lawyer with direct domain expertise.
+50-state coverage of Automatic License Plate Reader statutes. Two tracks: **private enterprise/personal** and **law enforcement**. .
 
 ## What this is
 
-An interactive tool for product managers, in-house counsel, and compliance teams making go/no-go deployment decisions on ALPR technology across US jurisdictions.
+An interactive tool for product managers, in-house counsel, compliance teams, or anyone wanting to understand ALPR statutes.
 
 Each state entry covers:
 - Deployment status (Prohibited → Consult Legal → Specific Uses Only → Permitted → No Specific Law)
@@ -16,7 +16,7 @@ Each state entry covers:
 
 ## Two tracks
 
-**Private Enterprise** — commercial operators, fleet managers, property owners, and individuals using ALPR for non-government purposes.
+**Private Enterprise/Personal** — commercial operators, fleet managers, property owners, and individuals using ALPR for non-government purposes.
 
 **Law Enforcement** — police, sheriff, government agencies, and (where the statute extends) their contracted vendors.
 
@@ -30,7 +30,7 @@ Data last verified: April 2026.
 
 ## States with enacted statutes
 
-25 states plus DC (DC's statute exists but is unfunded and not yet effective). The remaining states have no ALPR-specific law — general privacy obligations apply.
+23 states plus DC (DC's statute exists but is unfunded and not yet effective). The remaining states have no ALPR-specific law — other obligations may apply to license plate data, however.
 
 ## Running locally
 
@@ -45,4 +45,4 @@ This project auto-deploys to GitHub Pages via GitHub Actions on every push to `m
 
 ## Disclaimer
 
-This tool demonstrates methodology. It is not production compliance software. Always verify against current statute text before relying on it professionally.
+This tool demonstrates methodology. It is not production compliance software, nor is it legal advice. Always verify against current statute text before relying on it professionally.
