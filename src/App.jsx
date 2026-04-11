@@ -474,7 +474,7 @@ function WizardView({ onBack }) {
         </div>
 
         {selectedState && (
-          <div style={{ width: 420, minHeight: "calc(100vh - 52px)", borderLeft: "1px solid #e5e5e5", flexShrink: 0 }}>
+          <div style={{ width: 400, borderLeft: "1px solid #e5e5e5", flexShrink: 0, position: "sticky", top: 0, alignSelf: "flex-start", maxHeight: "100vh", overflowY: "auto" }}>
             <StatePanel abbr={selectedState} onClose={() => setSelectedState(null)} />
           </div>
         )}
