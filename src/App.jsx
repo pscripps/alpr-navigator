@@ -1,26 +1,20 @@
 import { useState, useMemo } from "react";
 import statuteData from "./data/alpr-statutes.json";
-
 const RAW = statuteData.data;
 const DATA = Object.fromEntries(RAW.map(s => [s.abbr, s]));
-
 // ─── GLOBAL STYLES ────────────────────────────────────────────────────────────
 const GLOBAL = `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; background: #F5F2EE; font-family: 'Libre Franklin', 'Helvetica Neue', Arial, sans-serif; font-size: 15px; color: #222; }
   button { cursor: pointer; font-family: inherit; border: none; background: none; }
-  .tile { transition: transform 0.1s ease, box-shadow 0.1s ease; cursor: pointer; }
-  .tile:hover { transform: scale(1.15); z-index: 20; box-shadow: 0 4px 14px rgba(0,0,0,0.25); }
-  .tile.selected { transform: scale(1.18); z-index: 30; box-shadow: 0 0 0 2px #F5F2EE, 0 0 0 4px #1A1A1A; }
-  .panel { animation: slideIn 0.22s ease; }
-  @keyframes slideIn { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
-  .door { transition: transform 0.15s ease, box-shadow 0.15s ease; }
-  .door:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(0,0,0,0.12); }
+  .tile { cursor: pointer; transition: outline 80ms ease-out; outline: 2px solid transparent; outline-offset: -2px; }
+  .tile:hover { outline-color: rgba(255,255,255,0.7); z-index: 10; }
+  .tile.selected { outline: 2px solid #1A1A1A; outline-offset: 2px; z-index: 20; }
+  .door { transition: border-color 0.15s ease; }
+  .door:hover { border-color: #999 !important; }
   ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
 `;
-
 const DISCLAIMER = "Proof of concept only. Does not constitute legal advice. Always verify against current statute text.";
-
 // ─── STATUS CONFIG ─────────────────────────────────────────────────────────────
 const S = {
   forbidden:             { label: "Prohibited",            bg: "#1C1C2E", fg: "#fff" },
@@ -32,7 +26,6 @@ const S = {
 const RISK_ORDER = ["forbidden", "legal_review_required", "narrow", "permitted", "silent"];
 const riskRank = s => RISK_ORDER.indexOf(s);
 const worstOf = (a, b) => riskRank(a) <= riskRank(b) ? a : b;
-
 function Pill({ status, sm }) {
   const c = S[status] || S.silent;
   return (
@@ -45,7 +38,15 @@ function Pill({ status, sm }) {
     }}>{c.label}</span>
   );
 }
-
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function hasLitigation(abbr) {
+  const d = DATA[abbr];
+  return d && (d.private?.litigation?.length > 0 || d.le?.litigation?.length > 0);
+}
+function hasNewOrWatch(abbr) {
+  const d = DATA[abbr];
+  return d && (d.meta?.new_statute || d.meta?.watch);
+}
 // ─── TILE GRID POSITIONS [col, row] ──────────────────────────────────────────
 const GRID = {
   ME:[11,0],
@@ -58,7 +59,6 @@ const GRID = {
   TX:[3,6],
   AK:[0,7],HI:[2,7],
 };
-
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function tileColor(abbr, track) {
   const d = DATA[abbr];
@@ -69,13 +69,11 @@ function tileColor(abbr, track) {
   }
   return S[d[track]?.status]?.bg || S.silent.bg;
 }
-
 function exportJSON() {
   const blob = new Blob([JSON.stringify(RAW, null, 2)], { type: "application/json" });
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
   a.download = "alpr-statutes.json"; a.click();
 }
-
 function exportCSV() {
   const headers = [
     "state","abbr",
@@ -113,21 +111,18 @@ function exportCSV() {
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
   a.download = "alpr-statutes.csv"; a.click();
 }
-
 // ─── STATE DETAIL PANEL ───────────────────────────────────────────────────────
 function TrackDetail({ track }) {
   const pra = track.pra;
   const praText = pra.alpr_specific === true ? pra.notes :
     pra.alpr_specific === false ? "Not under ALPR law." :
     `Unverified — ${pra.notes}`;
-
   return (
     <div>
       <div style={{ marginBottom: 12 }}>
         <Pill status={track.status} />
       </div>
       <p style={{ fontSize: 15, lineHeight: 1.65, color: "#222", marginBottom: 16 }}>{track.summary}</p>
-
       {(track.retention || track.data_sharing) && (
         <div style={{ background: "#F5F2EE", borderRadius: 6, padding: "12px 14px", marginBottom: 12 }}>
           {track.retention && (
@@ -144,12 +139,10 @@ function TrackDetail({ track }) {
           )}
         </div>
       )}
-
       <div style={{ background: pra.alpr_specific === true ? "#FFF3E0" : "#F5F2EE", borderRadius: 6, padding: "10px 14px", marginBottom: 12, borderLeft: pra.alpr_specific === true ? "3px solid #B06020" : "none" }}>
         <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 500, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em" }}>Can private citizens sue?</span>
         <p style={{ fontSize: 14, color: pra.alpr_specific === true ? "#7A3A00" : "#333", marginTop: 2, fontWeight: pra.alpr_specific === true ? 500 : 400 }}>{praText}</p>
       </div>
-
       {track.notable_points?.length > 0 && (
         <div>
           <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 500, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em" }}>Notable Points</span>
@@ -177,14 +170,12 @@ function TrackDetail({ track }) {
     </div>
   );
 }
-
 function StatePanel({ abbr, onClose }) {
   const d = DATA[abbr];
   const [activeTrack, setActiveTrack] = useState("private");
   if (!d) return null;
-
   return (
-    <div className="panel" style={{ background: "#fff", borderRadius: 8, padding: 24, height: "100%", overflowY: "auto", boxShadow: "-4px 0 20px rgba(0,0,0,0.06)" }}>
+    <div style={{ background: "#fff", borderRadius: 8, padding: 24, height: "100%", overflowY: "auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
         <div>
           <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
@@ -203,7 +194,6 @@ function StatePanel({ abbr, onClose }) {
         </div>
         <button onClick={onClose} style={{ color: "#aaa", fontSize: 20, lineHeight: 1, padding: "0 4px" }}>✕</button>
       </div>
-
       {d.meta?.new_statute && (
         <div style={{ background:"#1C1C2E", borderRadius:6, padding:"8px 12px", marginBottom:10, fontSize:13, color:"#FFD700", display:"flex", gap:8, alignItems:"flex-start" }}>
           <span style={{ flexShrink:0 }}>●</span>
@@ -221,7 +211,6 @@ function StatePanel({ abbr, onClose }) {
           ⚠ {d.meta.review_note || "This entry needs verification before relying on it."}
         </div>
       )}
-
       <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
         {["private","le"].map(t => (
           <button key={t} onClick={() => setActiveTrack(t)} style={{ padding: "7px 18px", borderRadius: 20, fontSize: 13, fontWeight: 500, background: activeTrack === t ? "#1A1A1A" : "#eee", color: activeTrack === t ? "#fff" : "#555", transition: "all 0.15s" }}>
@@ -229,27 +218,22 @@ function StatePanel({ abbr, onClose }) {
           </button>
         ))}
       </div>
-
       <TrackDetail track={d[activeTrack]} />
-
       <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid #eee" }}>
         <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#bbb" }}>Verified {d.meta.last_verified}</span>
       </div>
     </div>
   );
 }
-
 // ─── MAP VIEW ─────────────────────────────────────────────────────────────────
 function MapView({ onBack }) {
   const [track, setTrack] = useState("both");
   const [selected, setSelected] = useState(null);
   const CELL = 48;
-
   const maxCol = Math.max(...Object.values(GRID).map(([c]) => c));
   const maxRow = Math.max(...Object.values(GRID).map(([,r]) => r));
   const gridW = (maxCol + 1) * CELL + maxCol * 2;
   const gridH = (maxRow + 1) * CELL + maxRow * 2;
-
   return (
     <div style={{ minHeight: "100vh", background: "#F5F2EE" }}>
       <div style={{ background: "#1A1A1A", color: "#fff", padding: "14px 24px", display: "flex", alignItems: "center", gap: 16 }}>
@@ -261,55 +245,66 @@ function MapView({ onBack }) {
           ))}
         </div>
       </div>
-
       <div style={{ display: "flex", gap: 0 }}>
         <div style={{ flex: 1, padding: "28px 32px", overflowX: "auto", display: "flex", flexDirection: "column", alignItems: "center" }}>
           {/* Legend */}
           <div style={{ display: "flex", gap: 18, flexWrap: "wrap", marginBottom: 24, alignItems: "center", maxWidth: gridW + 100 }}>
             {Object.entries(S).map(([k, v]) => (
               <div key={k} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 20, height: 20, borderRadius: 4, background: v.bg, flexShrink: 0, boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+                <div style={{ width: 20, height: 20, borderRadius: 4, background: v.bg, flexShrink: 0 }} />
                 <span style={{ fontSize: 12, fontFamily: "'DM Mono', monospace", color: "#444", whiteSpace: "nowrap" }}>{v.label}</span>
               </div>
             ))}
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 20, height: 20, borderRadius: 4, background: "#888", flexShrink: 0, position:"relative" }}>
-                <span style={{ position:"absolute", top:3, right:3, width:5, height:5, borderRadius:"50%", background:"#FFD700" }} />
+                <span style={{ position:"absolute", top:3, right:3, width:5, height:5, borderRadius:"50%", background:"#FFD700", boxShadow:"0 0 0 0.5px rgba(0,0,0,0.3)" }} />
               </div>
               <span style={{ fontSize: 12, fontFamily: "'DM Mono', monospace", color: "#444", whiteSpace: "nowrap" }}>Recently changed or watch item</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 20, height: 20, borderRadius: 4, background: "#888", flexShrink: 0, position:"relative" }}>
-                <span style={{ position:"absolute", top:2, right:2, width:0, height:0, borderLeft:"4px solid transparent", borderRight:"4px solid transparent", borderBottom:"7px solid #FF4444" }} />
-              </div>
+              <div style={{ width: 20, height: 20, borderRadius: 4, background: "#888", flexShrink: 0, borderBottom: "3px solid #CC3333" }} />
               <span style={{ fontSize: 12, fontFamily: "'DM Mono', monospace", color: "#444", whiteSpace: "nowrap" }}>Active litigation</span>
             </div>
           </div>
-
           {/* Tile Grid */}
           <div style={{ position: "relative", width: gridW, height: gridH }}>
             {Object.entries(GRID).map(([abbr, [col, row]]) => {
               const bg = tileColor(abbr, track);
               const isSel = selected === abbr;
+              const lit = hasLitigation(abbr);
               return (
                 <div key={abbr} className={`tile${isSel ? " selected" : ""}`}
                   onClick={() => setSelected(isSel ? null : abbr)}
-                  style={{ position: "absolute", left: col * (CELL + 2), top: row * (CELL + 2), width: CELL, height: CELL, background: bg, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 500, userSelect: "none" }}>
+                  style={{
+                    position: "absolute",
+                    left: col * (CELL + 2),
+                    top: row * (CELL + 2),
+                    width: CELL,
+                    height: CELL,
+                    background: bg,
+                    borderRadius: 4,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#fff",
+                    fontFamily: "'DM Mono', monospace",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    userSelect: "none",
+                    borderBottom: lit ? "3px solid #CC3333" : "none",
+                  }}>
                   {abbr}
-                  {(DATA[abbr]?.meta?.new_statute || DATA[abbr]?.meta?.watch) && <span style={{ position:"absolute", top:3, right:3, width:5, height:5, borderRadius:"50%", background:"#FFD700" }} />}
-                  {(DATA[abbr]?.private?.litigation?.length > 0 || DATA[abbr]?.le?.litigation?.length > 0) && (
-                    <span style={{ position:"absolute", top:2, right: (DATA[abbr]?.meta?.new_statute || DATA[abbr]?.meta?.watch) ? 11 : 2, width:0, height:0, borderLeft:"4px solid transparent", borderRight:"4px solid transparent", borderBottom:"7px solid #FF4444" }} />
+                  {hasNewOrWatch(abbr) && (
+                    <span style={{ position:"absolute", top:3, right:3, width:5, height:5, borderRadius:"50%", background:"#FFD700", boxShadow:"0 0 0 0.5px rgba(0,0,0,0.3)" }} />
                   )}
                 </div>
               );
             })}
           </div>
-
           <p style={{ marginTop: 28, fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#bbb", textAlign: "center" }}>
             {DISCLAIMER}
           </p>
         </div>
-
         {/* Detail Panel */}
         {selected && (
           <div style={{ width: 420, minHeight: "calc(100vh - 52px)", borderLeft: "1px solid #e5e5e5", flexShrink: 0 }}>
@@ -320,12 +315,10 @@ function MapView({ onBack }) {
     </div>
   );
 }
-
 // ─── WIZARD VIEW ──────────────────────────────────────────────────────────────
 function WizardView({ onBack }) {
   const [selectedTrack, setSelectedTrack] = useState(null);
   const [selectedState, setSelectedState] = useState(null);
-
   const ranked = useMemo(() => {
     if (!selectedTrack) return [];
     const tracks = selectedTrack === "both" ? ["private", "le"] : [selectedTrack];
@@ -348,7 +341,6 @@ function WizardView({ onBack }) {
         return a.name.localeCompare(b.name);
       });
   }, [selectedTrack]);
-
   const summary = useMemo(() => {
     if (!selectedTrack) return null;
     const STATUS_LABELS = {
@@ -373,14 +365,12 @@ function WizardView({ onBack }) {
     }
     return { single: fmt(countByStatus(selectedTrack)) };
   }, [selectedTrack]);
-
   return (
     <div style={{ minHeight: "100vh", background: "#F5F2EE" }}>
       <div style={{ background: "#1A1A1A", color: "#fff", padding: "14px 24px", display: "flex", alignItems: "center", gap: 16 }}>
         <button onClick={onBack} style={{ color: "#aaa", fontSize: 13, fontFamily: "'DM Mono', monospace" }}>← back</button>
         <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 600 }}>Ranked Risk</h1>
       </div>
-
       <div style={{ display: "flex", gap: 0 }}>
         <div style={{ flex: 1, padding: 32, maxWidth: 780, margin: "0 auto" }}>
           {!selectedTrack ? (
@@ -411,7 +401,6 @@ function WizardView({ onBack }) {
                   {selectedTrack === "private" ? "Private & Personal Use" : selectedTrack === "le" ? "Law Enforcement" : "Both Tracks"} — all states by risk
                 </h2>
               </div>
-
               <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {summary && (
                   <div style={{ background: "#fff", borderRadius: 6, padding: "12px 16px", marginBottom: 16, border: "1px solid #e8e8e8" }}>
@@ -472,7 +461,6 @@ function WizardView({ onBack }) {
             </div>
           )}
         </div>
-
         {selectedState && (
           <div style={{ width: 400, borderLeft: "1px solid #e5e5e5", flexShrink: 0, position: "sticky", top: 0, alignSelf: "flex-start", maxHeight: "100vh", overflowY: "auto" }}>
             <StatePanel abbr={selectedState} onClose={() => setSelectedState(null)} />
@@ -482,7 +470,6 @@ function WizardView({ onBack }) {
     </div>
   );
 }
-
 // ─── DATA VIEW ────────────────────────────────────────────────────────────────
 function DataView({ onBack }) {
   return (
@@ -491,14 +478,12 @@ function DataView({ onBack }) {
         <button onClick={onBack} style={{ color: "#aaa", fontSize: 13, fontFamily: "'DM Mono', monospace" }}>← back</button>
         <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 600 }}>Raw Data</h1>
       </div>
-
       <div style={{ maxWidth: 680, margin: "60px auto", padding: "0 24px" }}>
         <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 30, marginBottom: 12 }}>Download the dataset</h2>
         <p style={{ color: "#555", fontSize: 16, lineHeight: 1.7, marginBottom: 32 }}>
           The underlying data is structured JSON — every statute entry, both tracks, litigation status, retention requirements, and source citations.
           Use it to build your own tools, extend it to other statute categories, or verify the underlying entries yourself.
         </p>
-
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 40 }}>
           <button onClick={exportJSON} style={{ display: "flex", alignItems: "center", gap: 16, background: "#fff", border: "1px solid #ddd", borderRadius: 8, padding: "16px 20px", textAlign: "left" }}>
             <div style={{ background: "#1A1A1A", color: "#fff", borderRadius: 4, padding: "6px 10px", fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 500 }}>JSON</div>
@@ -515,7 +500,6 @@ function DataView({ onBack }) {
             </div>
           </button>
         </div>
-
         <div style={{ background: "#fff", borderRadius: 8, padding: 20, border: "1px solid #e8e8e8" }}>
           <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#888", lineHeight: 1.8 }}>
             <strong style={{ color: "#555" }}>Data notes</strong><br/>
@@ -528,24 +512,20 @@ function DataView({ onBack }) {
     </div>
   );
 }
-
 // ─── RECENT CHANGES VIEW ─────────────────────────────────────────────────────
 function RecentView({ onBack }) {
   const [selected, setSelected] = useState(null);
-
   const newStatutes = RAW.filter(s => s.meta?.new_statute);
   const watchItems  = RAW.filter(s => s.meta?.watch);
   const litigation  = RAW.filter(s =>
     s.private?.litigation?.length > 0 || s.le?.litigation?.length > 0
   );
-
   const sortBySeverity = (arr) => [...arr].sort((a, b) => {
     const aW = riskRank(worstOf(a.private.status, a.le.status));
     const bW = riskRank(worstOf(b.private.status, b.le.status));
     if (aW !== bW) return aW - bW;
     return a.name.localeCompare(b.name);
   });
-
   function Section({ title, dot, items, emptyText }) {
     const sorted = sortBySeverity(items);
     return (
@@ -581,14 +561,12 @@ function RecentView({ onBack }) {
       </div>
     );
   }
-
   return (
     <div style={{ minHeight:"100vh", background:"#F5F2EE" }}>
       <div style={{ background:"#1A1A1A", color:"#fff", padding:"14px 24px", display:"flex", alignItems:"center", gap:16 }}>
         <button onClick={onBack} style={{ color:"#aaa", fontSize:13, fontFamily:"'DM Mono', monospace" }}>← back</button>
         <h1 style={{ fontFamily:"'Playfair Display', serif", fontSize:20, fontWeight:600 }}>What's Changed</h1>
       </div>
-
       <div style={{ display:"flex", gap:0 }}>
         <div style={{ flex:1, padding:"32px 32px 48px", maxWidth:760, margin:"0 auto" }}>
           <Section
@@ -605,12 +583,11 @@ function RecentView({ onBack }) {
           />
           <Section
             title="Active Litigation"
-            dot={<span style={{ display:"inline-block", width:0, height:0, borderLeft:"6px solid transparent", borderRight:"6px solid transparent", borderBottom:"10px solid #FF4444", flexShrink:0 }} />}
+            dot={<span style={{ display:"inline-block", width:0, height:0, borderLeft:"6px solid transparent", borderRight:"6px solid transparent", borderBottom:"10px solid #CC3333", flexShrink:0 }} />}
             items={litigation}
             emptyText="No active litigation tracked."
           />
         </div>
-
         {selected && (
           <div style={{ width:420, minHeight:"calc(100vh - 52px)", borderLeft:"1px solid #e5e5e5", flexShrink:0 }}>
             <StatePanel abbr={selected} onClose={() => setSelected(null)} />
@@ -620,18 +597,14 @@ function RecentView({ onBack }) {
     </div>
   );
 }
-
-
 function Landing({ onNavigate }) {
   const doors = [
     { key: "wizard", icon: "01", title: "Ranked Risk",  sub: "All 50 states ordered by exposure. Choose your track, see what each state says." },
     { key: "map",    icon: "02", title: "Risk Map",     sub: "50-state tile map colored by status. Click any state for the full picture." },
     { key: "data",   icon: "03", title: "Raw Data",     sub: "Download the full dataset as JSON or CSV. Build your own tools." },
   ];
-
   const recentCount = RAW.filter(s => s.meta?.new_statute || s.meta?.watch).length;
   const litigationCount = RAW.filter(s => s.private?.litigation?.length > 0 || s.le?.litigation?.length > 0).length;
-
   return (
     <div style={{ minHeight: "100vh", background: "#F5F2EE", display: "flex", flexDirection: "column" }}>
       <div style={{ maxWidth: 960, margin: "0 auto", width: "100%", padding: "56px 48px 0" }}>
@@ -643,7 +616,6 @@ function Landing({ onNavigate }) {
           50-state coverage. Two tracks: private &amp; personal use and law enforcement.
         </p>
       </div>
-
       <div style={{ maxWidth: 960, margin: "0 auto", width: "100%", padding: "40px 48px 0", display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ display: "flex", gap: 16, alignItems: "stretch" }}>
           {doors.map(d => (
@@ -652,19 +624,14 @@ function Landing({ onNavigate }) {
               <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 500, color: "#1A1A1A", letterSpacing: "0.08em", marginBottom: 4 }}>{d.icon}</div>
               <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 600, color: "#1A1A1A", lineHeight: 1.3 }}>{d.title}</div>
               <div style={{ fontSize: 14, color: "#888", lineHeight: 1.6, flex: 1 }}>{d.sub}</div>
-              <div style={{ paddingTop: 16, display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ height: 2, flex: 1, background: "#1A1A1A", borderRadius: 1 }} />
-                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#1A1A1A", fontWeight: 500 }}>GO →</span>
-              </div>
             </button>
           ))}
         </div>
-
         <button className="door" onClick={() => onNavigate("recent")}
           style={{ background: "#fff", borderRadius: 8, padding: "14px 20px", textAlign: "left", border: "1px solid #e8e8e8", boxShadow: "0 1px 6px rgba(0,0,0,0.04)", display: "flex", alignItems: "center", gap: 16, width: "100%" }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#FFD700", display: "inline-block" }} />
-            <span style={{ width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderBottom: "8px solid #FF4444", display: "inline-block" }} />
+            <span style={{ width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderBottom: "8px solid #CC3333", display: "inline-block" }} />
           </div>
           <div style={{ flex: 1 }}>
             <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 500, color: "#555" }}>What's changed</span>
@@ -675,7 +642,6 @@ function Landing({ onNavigate }) {
           <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#aaa" }}>VIEW →</span>
         </button>
       </div>
-
       <div style={{ maxWidth: 960, margin: "0 auto", width: "100%", padding: "16px 48px 32px" }}>
         <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#bbb" }}>
           {DISCLAIMER}
@@ -684,7 +650,6 @@ function Landing({ onNavigate }) {
     </div>
   );
 }
-
 // ─── APP ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const [view, setView] = useState("landing");
