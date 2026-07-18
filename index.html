@@ -2650,6 +2650,12 @@ function showHub() {
   document.getElementById("hub").hidden = false;
   document.getElementById("app").hidden = true;
   document.title = "Regime Atlas";
+  /* Re-arm the one-shot entrance: the hub is home, so every descent from it
+     replays the blur→focus unfurl. In-app regime switches still sweep. */
+  STATE.entered = false;
+  document.body.classList.remove("is-entered");
+  document.getElementById("legend")?.classList.remove("is-ready");
+  document.getElementById("index")?.classList.remove("is-ready");
 }
 
 function showApp(key) {
